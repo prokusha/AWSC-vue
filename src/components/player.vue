@@ -55,9 +55,13 @@ ws.onmessage = function(event) {
     try {
         const data = JSON.parse(event.data);
         const audioPlayer = document.getElementById("audioPlayer");
+        const cover = document.getElementById("cover");
         switch (data.type) {
             case 'play':
                 audioPlayer.src = data.url;
+                songTitle.value = data.author + " - " + data.title;
+                cover.src = 'https:' + data.cover.replace("%%", "400x400");
+                cover.style = 'visibility: visible;';
                 play();
                 break;
 
@@ -93,62 +97,114 @@ function sendMessage(type, data = {}) {
     ws.send(JSON.stringify(message));
 }
 
+function sendURL() {
+    if (url.value) {
+        sendMessage('url', { url: url.value });
+        url.value = "";
+    }
+    else console.warn('Empty input')
+}
+
+function sendNextEnded() {
+    audioPlayer.src = '';
+    songTitle.value = 'No audio';
+    cover.src = '';
+    cover.style = 'visibility: hidden;';
+    stop();
+    sendMessage('next');
+}
+
 </script>
 
 <template>
     <audio id="audioPlayer" 
         @timeupdate="updateSlider"
         @play="sendMessage('play')"
-        @ended="sendMessage('next')">
+        @ended="sendNextEnded">
     </audio>
     <div class="urlPlace">
         <input type="text" id="urlInput" v-model="url" placeholder="Input URL" />
-        <button 
-            @click="url ? 
-                    sendMessage('url', { url: url }) :
-                    console.warn('Empty form')">
-                Send URL
+        <button @click="sendURL">
+            Send URL
         </button>
     </div>
-    <div class="playerTitle">
-        <span>{{ songTitle }}</span>
-    </div>
     <div class="player">
-        <div class="playerButtons">
-            <button v-if="!playStatus" @click="play">&#9205;</button>
-            <button v-else @click="stop">&#9208;</button>
-            <button @click="sendMessage('sync')">&#128260;</button>
-            <button @click="sendMessage('next')">&#9197;</button>
+        <div class="playerTitle">
+            <span>{{ songTitle }}</span>
         </div>
-        <div class="playerSlider">
-            <span>{{ formatTime(currentTime) }}</span>
-            <input type="range" @input="seekAudio" v-model="currentTime" :max="duration">
-            <span>{{ formatTime(duration) }}</span>
+        <div class="playerCoverControls">
+            <div class="playerCover">
+                <img id="cover" alt="">
+            </div>
+            <div class="playerControls">
+                <div class="playerButtons">
+                    <button v-if="!playStatus" @click="play">&#9205;</button>
+                    <button v-else @click="stop">&#9208;</button>
+                    <button @click="sendMessage('sync')">&#128260;</button>
+                    <button @click="sendMessage('next')">&#9197;</button>
+                </div>
+                <div class="playerSlider">
+                    <span>{{ formatTime(currentTime) }}</span>
+                    <input type="range" @input="seekAudio" v-model="currentTime" :max="duration">
+                    <span>{{ formatTime(duration) }}</span>
+                </div>
+                <div class="playerVolume">
+                    <input type="range" @input="seekVolume" v-model="volume" :max="100">
+                    <span>{{ volume }}</span>
+                </div>
+            </div>
         </div>
-        <div class="playerVolume">
-            <input type="range" @input="seekVolume" v-model="volume" :max="100">
-            <span>{{ volume }}</span>
+        <div class="playerList">
+            <p>Queue</p>
+            <p v-for="queue in queueList">{{ queue.author }} - {{ queue.title }}</p>
         </div>
-    </div>
-    <div class="playerList">
-        <p>Queue</p>
-        <p v-for="queue in queueList">{{ queue.author }} - {{ queue.title }}</p>
     </div>
 </template>
 
 <style>
 
+.urlPlace {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+.urlPlace input {
+    width: 70%;
+    margin: 10px;
+}
+
+.urlPlace button {
+    width: 30%;
+    height: 45px;
+}
+
 .playerTitle {
     display: flex;
     justify-content: center;
     font-size: 25px;
+    margin-top: 25px;
     margin-bottom: 25px;
+}
+
+.playerCoverControls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.playerCover {
+    display: flex;
+    justify-content: center;
+    margin: 15px;
 }
 
 .player {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
+    flex-direction: column;
     background: #2d3538;
 }
 
@@ -161,20 +217,27 @@ function sendMessage(type, data = {}) {
     margin-right: 2rem;
 }
 
+.playerControls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
 .playerButtons {
     display: flex;
     align-items: center;
     padding-left: 0;
     padding-right: 0;
-    height: 40px;
+    height: 50px;
 }
 
 .playerButtons button {
     cursor: pointer;
-    font-size: 20px;
-    margin: 2px;
-    width: 30px;
-    height: 30px;
+    font-size: 30px;
+    margin: 10px;
+    width: 60px;
+    height: 60px;
     border-radius: 50%;
     border-style: none;
     background-color: #ffffff;
@@ -188,12 +251,13 @@ function sendMessage(type, data = {}) {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    width: 90%;
+    width: 95%;
     height: 40px;
+    margin-top: 25px;
 }
 
 .playerSlider input {
-    width: 90%;
+    width: 100%;
     margin-left: 20px;
     margin-right: 20px;
 }
@@ -201,8 +265,9 @@ function sendMessage(type, data = {}) {
 .playerVolume {
     display: flex;
     align-items: center;
+    flex-direction: column;
     height: 40px;
-    width: 20%;
+    width: 50%;
 }
 
 .playerVolume input {
@@ -215,6 +280,13 @@ function sendMessage(type, data = {}) {
     align-items: center;
     flex-direction: column;
     font-size: 25px;
+    color: white;
+    width: 90%;
+    height: 30%;
+    border: 2px;
+    border-radius: 25px;
+    border-style: solid;
+    border-color: white;
 }
 
 </style>
