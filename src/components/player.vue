@@ -53,36 +53,46 @@ ws.onopen = function() {
 
 ws.onmessage = function(event) {
     try {
-        const data = JSON.parse(event.data);
+        const datas = JSON.parse(event.data);
         const audioPlayer = document.getElementById("audioPlayer");
         const cover = document.getElementById("cover");
-        switch (data.type) {
-            case 'play':
-                audioPlayer.src = data.url;
-                songTitle.value = data.author + " - " + data.title;
-                cover.src = 'https:' + data.cover.replace("%%", "400x400");
-                cover.style = 'visibility: visible;';
-                play();
-                break;
-
-            case 'queue':
-                queueList.value = data.items;
-                break;
-
-            case 'timestamp':
-                const timestamp = parseFloat(data.timestamp);
-                // timestampsDiv.innerHTML += `<p>Timestamp: ${timestamp} seconds</p>`;
-                audioPlayer.currentTime = timestamp;
-                break;
-
-            default:
-                console.warn('Неизвестный тип сообщения:', data.type);
-                break;
+        if (Array.isArray(datas)) {
+            datas.forEach(data => {
+                jsonParse(data);
+            });
+        } else {
+            jsonParse(datas);
         }
     } catch (error) {
         console.error('Ошибка при обработке сообщения:', error);
     }
 };
+
+function jsonParse(data) {
+    switch (data.type) {
+        case 'play':
+            audioPlayer.src = data.url;
+            songTitle.value = data.author + " - " + data.title;
+            cover.src = 'https:' + data.cover.replace("%%", "400x400");
+            cover.style = 'visibility: visible;';
+            play();
+            break;
+
+        case 'queue':
+            queueList.value = data.items;
+            break;
+
+        case 'timestamp':
+            const timestamp = parseFloat(data.timestamp);
+            // timestampsDiv.innerHTML += `<p>Timestamp: ${timestamp} seconds</p>`;
+            audioPlayer.currentTime = timestamp;
+            break;
+
+        default:
+            console.warn('Неизвестный тип сообщения:', data.type);
+            break;
+    }
+}
 
 ws.onclose = function() {
     console.log('Disconnected from the server');
@@ -99,7 +109,8 @@ function sendMessage(type, data = {}) {
 
 function sendURL() {
     if (url.value) {
-        sendMessage('url', { url: url.value });
+        let surl = url.value.split("?");
+        sendMessage('url', { url: surl[0] });
         url.value = "";
     }
     else console.warn('Empty input')
