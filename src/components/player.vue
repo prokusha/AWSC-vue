@@ -162,8 +162,7 @@ function sendNextEnded() {
                 <span>{{ volume }}</span>
             </div>
         </div>
-        <div v-if="queueList.length == 0"></div>
-        <div v-else class="playerList">
+        <div class="playerList">
             <p>Queue</p>
             <p v-for="queue in queueList">{{ queue.author }} - {{ queue.title }}</p>
         </div>
