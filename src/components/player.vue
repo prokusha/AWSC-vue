@@ -121,8 +121,7 @@ function sendNextEnded() {
     songTitle.value = 'No audio';
     cover.src = '';
     cover.style = 'visibility: hidden;';
-    stop();
-    sendMessage('next');
+    sendMessage('ended');
 }
 
 </script>
@@ -140,32 +139,31 @@ function sendNextEnded() {
         </button>
     </div>
     <div class="player">
+        <div class="playerCover">
+            <img id="cover" alt="">
+        </div>
         <div class="playerTitle">
             <span>{{ songTitle }}</span>
         </div>
-        <div class="playerCoverControls">
-            <div class="playerCover">
-                <img id="cover" alt="">
+        <div class="playerControls">
+            <div class="playerButtons">
+                <button v-if="!playStatus" @click="play">&#9205;</button>
+                <button v-else @click="stop">&#9208;</button>
+                <button @click="sendMessage('sync')">&#128260;</button>
+                <button @click="sendMessage('next')">&#9197;</button>
             </div>
-            <div class="playerControls">
-                <div class="playerButtons">
-                    <button v-if="!playStatus" @click="play">&#9205;</button>
-                    <button v-else @click="stop">&#9208;</button>
-                    <button @click="sendMessage('sync')">&#128260;</button>
-                    <button @click="sendMessage('next')">&#9197;</button>
-                </div>
-                <div class="playerSlider">
-                    <span>{{ formatTime(currentTime) }}</span>
-                    <input type="range" @input="seekAudio" v-model="currentTime" :max="duration">
-                    <span>{{ formatTime(duration) }}</span>
-                </div>
-                <div class="playerVolume">
-                    <input type="range" @input="seekVolume" v-model="volume" :max="100">
-                    <span>{{ volume }}</span>
-                </div>
+            <div class="playerSlider">
+                <span>{{ formatTime(currentTime) }}</span>
+                <input type="range" @input="seekAudio" v-model="currentTime" :max="duration" disabled>
+                <span>{{ formatTime(duration) }}</span>
+            </div>
+            <div class="playerVolume">
+                <input type="range" @input="seekVolume" v-model="volume" :max="100">
+                <span>{{ volume }}</span>
             </div>
         </div>
-        <div class="playerList">
+        <div v-if="queueList.length == 0"></div>
+        <div v-else class="playerList">
             <p>Queue</p>
             <p v-for="queue in queueList">{{ queue.author }} - {{ queue.title }}</p>
         </div>
@@ -199,12 +197,6 @@ function sendNextEnded() {
     margin-bottom: 25px;
 }
 
-.playerCoverControls {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
 .playerCover {
     display: flex;
     justify-content: center;
@@ -216,7 +208,6 @@ function sendNextEnded() {
     justify-content: center;
     align-items: center;
     flex-direction: column;
-    background: #2d3538;
 }
 
 .player span {
@@ -298,6 +289,7 @@ function sendNextEnded() {
     border-radius: 25px;
     border-style: solid;
     border-color: white;
+    margin-top: 25px;
 }
 
 </style>
